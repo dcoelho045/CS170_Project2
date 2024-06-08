@@ -1,10 +1,12 @@
+import random
+
 class FeatureSelection:
     def __init__(self, validator, classifier):
         self.validator = validator
         self.classifier = classifier
     
     
-    def forward_selection(self, min_accuracy_improvement=0.001):
+    def forwardSelection(self, min_accuracy_improvement=0.001):
         best_features = []
         best_accuracy = 0
         num_features = self.validator.data.shape[1]
@@ -37,12 +39,12 @@ class FeatureSelection:
             
             print(f"Feature set {[f+1 for f in best_features]} was best, accuracy is {best_accuracy:.2f}\n")
 
-        print(f"\nBest feature subset (forward selection): {[f+1 for f in best_features]} with accuracy: {best_accuracy:.2f}\n\n")
+        print(f"\nBest feature subset (forward selection): {[f+1 for f in best_features]} with accuracy: {best_accuracy:.2f}\n")
 
 
 
     
-    def backward_elimination(self):
+    def backwardElimination(self):
         num_features = self.validator.data.shape[1]
         best_features = list(range(num_features))
         best_accuracy = self.validator.validate(self.classifier, best_features)
@@ -73,3 +75,45 @@ class FeatureSelection:
         print(f"\nBest feature subset (backward elimination): {[f+1 for f in best_features]} with accuracy: {best_accuracy:.2f}")
 
 
+
+    def SCVforwardSelection(self):
+        best_features = []
+        remaining_features = list(range(self.validator.data.shape[1]))
+        best_accuracy = 0
+
+        while remaining_features:
+            best_feature = None
+            for feature in remaining_features:
+                current_features = best_features + [feature]
+                accuracy = self.validator.stratified_cross_validation(self.classifier, current_features)
+                if accuracy > best_accuracy:
+                    best_accuracy = accuracy
+                    best_feature = feature
+            if best_feature is not None:
+                best_features.append(best_feature)
+                remaining_features.remove(best_feature)
+            else:
+                break
+
+        print(f"Selected features: {best_features}")
+        print(f"Best accuracy: {best_accuracy:.2f}")
+
+    def SCVbackwardElimination(self):
+        best_features = list(range(self.validator.data.shape[1]))
+        best_accuracy = self.validator.stratified_cross_validation(self.classifier, best_features)
+
+        while len(best_features) > 1:
+            worst_feature = None
+            for feature in best_features:
+                current_features = [f for f in best_features if f != feature]
+                accuracy = self.validator.stratified_cross_validation(self.classifier, current_features)
+                if accuracy > best_accuracy:
+                    best_accuracy = accuracy
+                    worst_feature = feature
+            if worst_feature is not None:
+                best_features.remove(worst_feature)
+            else:
+                break
+
+        print(f"Selected features: {best_features}")
+        print(f"Best accuracy: {best_accuracy:.2f}")
